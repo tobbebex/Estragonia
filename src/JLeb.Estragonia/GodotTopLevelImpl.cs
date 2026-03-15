@@ -404,8 +404,6 @@ internal sealed class GodotTopLevelImpl : ITopLevelImpl {
 		}
 
 		Closed?.Invoke();
-
-		_platformGraphics.Release();
 	}
 
 }
