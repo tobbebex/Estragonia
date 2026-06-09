@@ -71,7 +71,7 @@ internal sealed class GodotTopLevelImpl : ITopLevelImpl {
 	public Action<WindowTransparencyLevel>? TransparencyLevelChanged { get; set; }
 
 	IEnumerable<object> ITopLevelImpl.Surfaces
-		=> GetOrCreateSurfaces();
+		=> new object[] { GetOrCreateSurface() };
 
 	AcrylicPlatformCompensationLevels ITopLevelImpl.AcrylicCompensationLevels
 		=> new(1.0, 1.0, 1.0);
@@ -85,8 +85,7 @@ internal sealed class GodotTopLevelImpl : ITopLevelImpl {
 	}
 
 	private IGodotSkiaSurface CreateSurface() {
-		if (_isDisposed)
-			throw new ObjectDisposedException(nameof(GodotTopLevelImpl));
+		ObjectDisposedException.ThrowIf(_isDisposed, typeof(GodotTopLevelImpl));
 
 		return _platformGraphics.GetSharedContext().CreateSurface(_renderSize, RenderScaling);
 	}
@@ -96,9 +95,6 @@ internal sealed class GodotTopLevelImpl : ITopLevelImpl {
 
 	public IGodotSkiaSurface GetOrCreateSurface()
 		=> _surface ??= CreateSurface();
-
-	private IEnumerable<object> GetOrCreateSurfaces()
-		=> new object[] { GetOrCreateSurface() };
 
 	[SuppressMessage("ReSharper", "CompareOfFloatsByEqualityOperator", Justification = "Doesn't affect correctness")]
 	public void SetRenderSize(PixelSize renderSize, double renderScaling) {

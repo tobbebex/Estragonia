@@ -37,7 +37,7 @@ internal sealed class GodotMtlPlatformGraphics : IGodotPlatformGraphics {
 		=> throw new NotSupportedException();
 
 	IPlatformGraphicsContext IPlatformGraphics.GetSharedContext()
-		=> (IPlatformGraphicsContext)GetSharedContext();
+		=> GetSharedContext();
 
 	public void AddRef()
 		=> Interlocked.Increment(ref _refCount);

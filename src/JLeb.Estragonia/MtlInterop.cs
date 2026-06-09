@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using Godot;
 using SkiaSharp;
 
 namespace JLeb.Estragonia;
@@ -15,7 +17,7 @@ internal static class MtlInterop {
 
 	#region Objective-C Runtime
 
-	[DllImport(OBJC_LIBRARY, EntryPoint = "sel_registerName")]
+	[DllImport(OBJC_LIBRARY, EntryPoint = "sel_registerName", CharSet = CharSet.Unicode)]
 	private static extern IntPtr sel_registerName(string name);
 
 	[DllImport(OBJC_LIBRARY, EntryPoint = "objc_msgSend")]
@@ -23,9 +25,6 @@ internal static class MtlInterop {
 
 	[DllImport(OBJC_LIBRARY, EntryPoint = "objc_msgSend")]
 	private static extern void objc_msgSend_void(IntPtr receiver, IntPtr selector);
-
-	[DllImport(OBJC_LIBRARY, EntryPoint = "objc_msgSend")]
-	private static extern IntPtr objc_msgSend_IntPtr(IntPtr receiver, IntPtr selector, IntPtr arg1);
 
 	[DllImport(OBJC_LIBRARY, EntryPoint = "objc_msgSend")]
 	private static extern void objc_msgSend_blit(
@@ -79,14 +78,14 @@ internal static class MtlInterop {
 			// Get command buffer from queue
 			var commandBuffer = objc_msgSend(commandQueue, _selCommandBuffer);
 			if (commandBuffer == IntPtr.Zero) {
-				Godot.GD.PrintErr("[Estragonia Metal] Failed to create command buffer");
+				GD.PrintErr("[Estragonia Metal] Failed to create command buffer");
 				return false;
 			}
 
 			// Get blit command encoder
 			var blitEncoder = objc_msgSend(commandBuffer, _selBlitCommandEncoder);
 			if (blitEncoder == IntPtr.Zero) {
-				Godot.GD.PrintErr("[Estragonia Metal] Failed to create blit encoder");
+				GD.PrintErr("[Estragonia Metal] Failed to create blit encoder");
 				return false;
 			}
 
@@ -110,7 +109,7 @@ internal static class MtlInterop {
 			return true;
 		}
 		catch (Exception ex) {
-			Godot.GD.PrintErr($"[Estragonia Metal] BlitTexture failed: {ex.Message}");
+			GD.PrintErr($"[Estragonia Metal] BlitTexture failed: {ex.Message}");
 			return false;
 		}
 	}
@@ -121,9 +120,6 @@ internal static class MtlInterop {
 
 	[DllImport(SKIA_LIBRARY, CallingConvention = CallingConvention.Cdecl)]
 	private static extern IntPtr sk_surface_get_backend_texture(IntPtr surface, int mode);
-
-	[DllImport(SKIA_LIBRARY, CallingConvention = CallingConvention.Cdecl)]
-	private static extern bool gr_backendtexture_get_gl_textureinfo(IntPtr texture, out IntPtr info);
 
 	/// <summary>
 	/// Gets the Metal texture handle from a Skia surface's backend texture.
@@ -146,7 +142,7 @@ internal static class MtlInterop {
 			return GetMetalTextureFromBackend(backendTexture);
 		}
 		catch (Exception ex) {
-			Godot.GD.PrintErr($"[Estragonia Metal] GetSurfaceMetalTexture failed: {ex.Message}");
+			GD.PrintErr($"[Estragonia Metal] GetSurfaceMetalTexture failed: {ex.Message}");
 			return IntPtr.Zero;
 		}
 	}
@@ -154,7 +150,7 @@ internal static class MtlInterop {
 	private static IntPtr GetSKObjectHandle(SKObject obj) {
 		// SKObject.Handle property
 		var handleProp = typeof(SKObject).GetProperty("Handle",
-			System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+			BindingFlags.Public | BindingFlags.Instance);
 		return handleProp?.GetValue(obj) as IntPtr? ?? IntPtr.Zero;
 	}
 
@@ -221,7 +217,7 @@ internal static class MtlInterop {
 	private static GRBackendTexture? CreateGRBackendTextureFromHandle(IntPtr handle) {
 		try {
 			var ctors = typeof(GRBackendTexture).GetConstructors(
-				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+				BindingFlags.NonPublic | BindingFlags.Instance
 			);
 
 			// Try (IntPtr, bool) constructor
@@ -300,7 +296,7 @@ internal static class MtlInterop {
 		try {
 			// Try to find a constructor on GRContext that takes (IntPtr, bool)
 			var ctors = typeof(GRContext).GetConstructors(
-				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+				BindingFlags.NonPublic | BindingFlags.Instance
 			);
 
 			// Try (IntPtr, bool) constructor
@@ -325,7 +321,7 @@ internal static class MtlInterop {
 
 			// Last resort: check base class SKObject for useful patterns
 			var owned = typeof(SKObject).GetMethod("Owned",
-				System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+				BindingFlags.NonPublic | BindingFlags.Static);
 			if (owned is not null && owned.IsGenericMethod) {
 				var typedOwned = owned.MakeGenericMethod(typeof(GRContext));
 				var result = typedOwned.Invoke(null, new object[] { handle }) as GRContext;
@@ -346,7 +342,7 @@ internal static class MtlInterop {
 	private static GRBackendRenderTarget? CreateGRBackendRenderTargetFromHandle(IntPtr handle) {
 		// Try to find a constructor or factory method
 		var ctor = typeof(GRBackendRenderTarget).GetConstructor(
-			System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+			BindingFlags.NonPublic | BindingFlags.Instance,
 			null,
 			new[] { typeof(IntPtr), typeof(bool) },
 			null
@@ -358,7 +354,7 @@ internal static class MtlInterop {
 
 		// Fallback: try single IntPtr constructor
 		ctor = typeof(GRBackendRenderTarget).GetConstructor(
-			System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+			BindingFlags.NonPublic | BindingFlags.Instance,
 			null,
 			new[] { typeof(IntPtr) },
 			null
